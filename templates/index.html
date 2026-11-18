@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A simple dashboard for tracking everyday expenses.">
+    <title>ExpenseTracker | Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/script.js') }}" defer></script>
+</head>
+<body>
+    <header class="topbar">
+        <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">E</span> ExpenseTracker</a>
+        <nav aria-label="Main navigation">
+            <a class="nav-link active" href="{{ url_for('index') }}">Dashboard</a>
+            <a class="button button-primary nav-button" href="{{ url_for('add_expense') }}">+ Add expense</a>
+        </nav>
+    </header>
+
+    <main class="page-shell">
+        <section class="page-heading">
+            <div>
+                <p class="eyebrow">YOUR MONEY, AT A GLANCE</p>
+                <h1>Expense dashboard</h1>
+                <p class="subheading">Keep track of where your money goes.</p>
+            </div>
+            <a class="button button-primary desktop-add" href="{{ url_for('add_expense') }}">+ Add expense</a>
+        </section>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="messages" role="status">
+                    {% for category, message in messages %}
+                        <p class="message message-{{ category }}">{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="summary-grid" aria-label="Expense summary">
+            <article class="summary-card">
+                <div class="summary-icon icon-purple" aria-hidden="true">$</div>
+                <div><p class="card-label">Total expenses</p><p class="card-value">{{ "%.2f"|format(total) }}</p></div>
+            </article>
+            <article class="summary-card">
+                <div class="summary-icon icon-blue" aria-hidden="true">#</div>
+                <div><p class="card-label">Transactions</p><p class="card-value">{{ expenses|length }}</p></div>
+            </article>
+            <article class="summary-card">
+                <div class="summary-icon icon-green" aria-hidden="true">▦</div>
+                <div><p class="card-label">Categories</p><p class="card-value">{{ category_totals|length }}</p></div>
+            </article>
+        </section>
+
+        <section class="content-grid">
+            <article class="panel expense-panel">
+                <div class="panel-heading">
+                    <div><h2>Recent expenses</h2><p class="panel-caption">Your recorded transactions</p></div>
+                    <span class="count-pill">{{ expenses|length }} total</span>
+                </div>
+                {% if expenses %}
+                    <div class="table-wrap">
+                        <table>
+                            <thead><tr><th>Expense</th><th>Category</th><th>Date</th><th class="amount-cell">Amount</th><th><span class="visually-hidden">Actions</span></th></tr></thead>
+                            <tbody>
+                                {% for expense in expenses %}
+                                    <tr>
+                                        <td class="expense-name">{{ expense.name }}</td>
+                                        <td><span class="category-pill">{{ expense.category }}</span></td>
+                                        <td class="muted-cell">{{ expense.date }}</td>
+                                        <td class="amount-cell amount-value">{{ "%.2f"|format(expense.amount) }}</td>
+                                        <td class="action-cell">
+                                            <form method="post" action="{{ url_for('delete_expense', expense_id=expense.id) }}" data-confirm-delete>
+                                                <button class="delete-button" type="submit" aria-label="Delete {{ expense.name }}">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-icon" aria-hidden="true">＋</div>
+                        <h3>No expenses yet</h3>
+                        <p>Add your first expense to see it here.</p>
+                        <a class="button button-primary" href="{{ url_for('add_expense') }}">Add your first expense</a>
+                    </div>
+                {% endif %}
+            </article>
+
+            <aside class="panel category-panel">
+                <div class="panel-heading">
+                    <div><h2>By category</h2><p class="panel-caption">Spending grouped by category</p></div>
+                </div>
+                {% if category_totals %}
+                    <ul class="category-list">
+                        {% for item in category_totals %}
+                            <li><span class="category-name"><span class="category-dot" aria-hidden="true"></span>{{ item.category }}</span><strong>{{ "%.2f"|format(item.total) }}</strong></li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="category-empty">Category totals will appear after you add an expense.</p>
+                {% endif %}
+            </aside>
+        </section>
+        <footer class="footer">A simple way to stay on top of everyday spending.</footer>
+    </main>
+</body>
+</html>
