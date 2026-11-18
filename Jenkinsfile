@@ -1,21 +1,22 @@
+
 pipeline {
     agent any
 
     environment {
-        // Replace with your Docker Hub username/repository before creating the job.
-        IMAGE_NAME = 'your-dockerhub-username/expensetracker'
+        IMAGE_NAME = 'expensetracker:latest'
         CONTAINER_NAME = 'expensetracker'
         DATA_VOLUME = 'expensetracker-data'
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Install dependencies') {
+        stage('Install Dependencies') {
             steps {
                 sh '''
                     python3 -m venv .venv
@@ -25,36 +26,19 @@ pipeline {
             }
         }
 
-        stage('Run tests') {
+        stage('Run Tests') {
             steps {
                 sh '.venv/bin/python -m pytest -q'
             }
         }
 
-        stage('Build Docker image') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker build -t "$IMAGE_NAME:latest" .'
+                sh 'docker build -t "$IMAGE_NAME" .'
             }
         }
 
-        stage('Push image to Docker Hub') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-credentials',
-                    usernameVariable: 'DOCKERHUB_USERNAME',
-                    passwordVariable: 'DOCKERHUB_TOKEN'
-                )]) {
-                    sh '''
-                        echo "$DOCKERHUB_TOKEN" | docker login \
-                            --username "$DOCKERHUB_USERNAME" --password-stdin
-                        docker push "$IMAGE_NAME:latest"
-                        docker logout
-                    '''
-                }
-            }
-        }
-
-        stage('Stop and remove old container') {
+        stage('Stop Old Container') {
             steps {
                 sh '''
                     if docker container inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
@@ -64,13 +48,7 @@ pipeline {
             }
         }
 
-        stage('Pull latest image') {
-            steps {
-                sh 'docker pull "$IMAGE_NAME:latest"'
-            }
-        }
-
-        stage('Deploy updated container') {
+        stage('Deploy Application') {
             steps {
                 withCredentials([string(
                     credentialsId: 'expense-flask-secret-key',
@@ -83,7 +61,7 @@ pipeline {
                             --publish 5000:5000 \
                             --volume "$DATA_VOLUME:/data" \
                             --env SECRET_KEY="$FLASK_SECRET_KEY" \
-                            "$IMAGE_NAME:latest"
+                            "$IMAGE_NAME"
                     '''
                 }
             }
